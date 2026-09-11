@@ -112,18 +112,26 @@ jobs:
         run: |
           set -euxo pipefail
 
+          mkdir -p build/pages/apt
+          
+          (
+          cd build/pages/apt
           mkdir -p \
-            build/pages/apt/pool/main/d/docker-credential-ghcr \
-            build/pages/apt/dists/stable/main/binary-all
+            pool/main/d/docker-credential-ghcr \
+            dists/stable/main/binary-all
+          )
 
           cp \
             "build/apt/docker-credential-ghcr_${VERSION}_all.deb" \
             build/pages/apt/pool/main/d/docker-credential-ghcr/
 
+          (
+          cd build/pages/apt
           apt-ftparchive \
             packages \
-            build/pages/apt/pool/main \
-            > build/pages/apt/dists/stable/main/binary-all/Packages
+            pool/main \
+            > dists/stable/main/binary-all/Packages
+          )
 
           gzip -9 -k build/pages/apt/dists/stable/main/binary-all/Packages
 
@@ -139,11 +147,14 @@ jobs:
           };
           CONF
 
+          (
+          cd build/pages/apt
           apt-ftparchive \
             -c /tmp/apt-ftparchive.conf \
             release \
-            build/pages/apt/dists/stable \
-            > build/pages/apt/dists/stable/Release
+            dists/stable \
+            > dists/stable/Release
+          )
 
           export GNUPGHOME="$(mktemp -d)"
           chmod 0700 "${GNUPGHOME}"
@@ -248,6 +259,7 @@ jobs:
       - uses: actions/deploy-pages@v5
   github:
     needs:
+      - version
       - build
       - apt
     runs-on: ubuntu-latest
