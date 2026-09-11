@@ -108,6 +108,7 @@ jobs:
       - name: Build APT repository
         env:
           VERSION: ${{ needs.version.outputs.version }}
+          APT_GPG_PRIVATE_KEY: ${{ secrets.APT_GPG_PRIVATE_KEY }}
         run: |
           set -euxo pipefail
 
@@ -130,6 +131,41 @@ jobs:
             release \
             build/pages/apt/dists/stable \
             > build/pages/apt/dists/stable/Release
+
+          export GNUPGHOME="$(mktemp -d)"
+          chmod 0700 "${GNUPGHOME}"
+
+          printf '%s' "${APT_GPG_PRIVATE_KEY}" \
+            | gpg --batch --import
+
+          GPG_KEY_ID="$(
+            gpg \
+              --batch \
+              --list-secret-keys \
+              --with-colons \
+            | awk -F: '$1 == "sec" { print $5; exit }'
+          )"
+
+          test -n "${GPG_KEY_ID}"
+
+          gpg \
+            --batch \
+            --yes \
+            --local-user "${GPG_KEY_ID}" \
+            --digest-algo SHA256 \
+            --clearsign \
+            --output build/pages/apt/dists/stable/InRelease \
+            build/pages/apt/dists/stable/Release
+
+          gpg \
+            --batch \
+            --yes \
+            --local-user "${GPG_KEY_ID}" \
+            --digest-algo SHA256 \
+            --armor \
+            --detach-sign \
+            --output build/pages/apt/dists/stable/Release.gpg \
+            build/pages/apt/dists/stable/Release
 
       - uses: actions/upload-artifact@v7
         with:
@@ -192,6 +228,10 @@ jobs:
       - uses: actions/upload-pages-artifact@v4
         with:
           path: 'build/pages'
+      # set source to GitHub Actions here:
+      # https://github.com/alexanderankin/docker-credential-helper-ghcr/settings/pages
+      # make sure rules allow for publishing here:
+      # https://github.com/alexanderankin/docker-credential-helper-ghcr/settings/environments
       - uses: actions/deploy-pages@v5
   github:
     needs:
