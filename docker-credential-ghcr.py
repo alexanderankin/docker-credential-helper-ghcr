@@ -72,7 +72,7 @@ def print_gh_credentials() -> None:
     print_credentials(username, token)
 
 
-def print_credentials(username: str, password: str) -> None:
+def print_credentials(username: str, token: str) -> None:
     print(json.dumps({
         "Username": username,
         "Secret": token,
