@@ -164,9 +164,6 @@ jobs:
           git fetch origin main
           git checkout main
 
-          mkdir -p Formula
-          cp /tmp/docker-credential-ghcr.rb Formula/docker-credential-ghcr.rb
-
           if git diff --quiet; then
             exit 0
           fi
