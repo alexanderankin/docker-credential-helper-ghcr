@@ -2,8 +2,8 @@ class DockerCredentialGhcr < Formula
   desc "Docker credential helper for GHCR backed by GitHub CLI"
   homepage "https://github.com/alexanderankin/docker-credential-helper-ghcr"
 
-  version "0.0.1"
-  sha256 "80e0a4cdeb5b0e0fb57a5f99157defa38f045cdf2a622a6f2862de3c6d4c5e1f"
+  version "0.0.2"
+  sha256 "b02a152d08439429e2eebbec5a7011cd3f353933fd91a8f073846b3b78a80dd9"
   url "https://github.com/alexanderankin/docker-credential-helper-ghcr/releases/download/v#{version}/docker-credential-ghcr.py"
 
   license "Apache-2.0"
