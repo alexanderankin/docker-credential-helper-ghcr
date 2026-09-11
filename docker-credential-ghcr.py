@@ -44,6 +44,13 @@ def get() -> None:
     if host not in SUPPORTED_HOSTS:
         raise RuntimeError(f"{host!r} is not a supported host")
 
+    if os.getenv("GITHUB_ACTIONS") == "true":
+        print_credentials(os.getenv("GITHUB_ACTOR"), os.getenv("GITHUB_TOKEN"))
+    else:
+        print_gh_credentials()
+
+
+def print_gh_credentials() -> None:
     token = run(
         "gh",
         "auth",
@@ -62,7 +69,10 @@ def get() -> None:
         "--jq",
         ".login",
     )
+    print_credentials(username, token)
 
+
+def print_credentials(username: str, password: str) -> None:
     print(json.dumps({
         "Username": username,
         "Secret": token,
