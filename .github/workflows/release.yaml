@@ -249,7 +249,7 @@ jobs:
         with:
           name: 'build-pages-apt'
           path: 'build/pages/apt'
-      - uses: actions/upload-pages-artifact@v4
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: 'build/pages'
       # set source to GitHub Actions here:

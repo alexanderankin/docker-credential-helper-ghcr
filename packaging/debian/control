@@ -3,7 +3,7 @@ Version: __version__
 Section: utils
 Priority: optional
 Architecture: all
-Depends: python3, gh
+Depends: python3, gh, python-is-python3
 Maintainer: Maintainer <maintainer@example.com>
 Description: Docker credential helper for GitHub Container Registry
  Uses the GitHub CLI authentication context to provide credentials
