@@ -127,7 +127,20 @@ jobs:
 
           gzip -9 -k build/pages/apt/dists/stable/main/binary-all/Packages
 
+          cat <<'CONF' > /tmp/apt-ftparchive.conf
+          APT::FTPArchive::Release {
+            Origin "docker-credential-helper-ghcr";
+            Label "docker-credential-helper-ghcr";
+            Suite "stable";
+            Codename "stable";
+            Architectures "all";
+            Components "main";
+            Description "Docker credential helper for GHCR";
+          };
+          CONF
+
           apt-ftparchive \
+            -c /tmp/apt-ftparchive.conf \
             release \
             build/pages/apt/dists/stable \
             > build/pages/apt/dists/stable/Release
