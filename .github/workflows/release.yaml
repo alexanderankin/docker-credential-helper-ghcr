@@ -121,7 +121,7 @@ jobs:
 
           apt-ftparchive \
             packages \
-            built/apt/pool/main \
+            build/pages/apt/pool/main \
             > build/pages/apt/dists/stable/main/binary-all/Packages
 
           gzip -9 -k build/pages/apt/dists/stable/main/binary-all/Packages
