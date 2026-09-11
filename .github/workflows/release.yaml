@@ -33,6 +33,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: build
+        env:
+          VERSION: "${{ needs.version.outputs.version }}"
         run: |
           set -euxo pipefail
 
