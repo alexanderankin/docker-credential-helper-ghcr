@@ -3,7 +3,7 @@ class DockerCredentialGhcr < Formula
   homepage "https://github.com/alexanderankin/docker-credential-helper-ghcr"
 
   version "0.0.2"
-  sha256 "b02a152d08439429e2eebbec5a7011cd3f353933fd91a8f073846b3b78a80dd9"
+  sha256 "b0f9faceeef625407b8e0ee454072e8c88694b95b4b683ffa62adf67417054db"
   url "https://github.com/alexanderankin/docker-credential-helper-ghcr/releases/download/v#{version}/docker-credential-ghcr.py"
 
   license "Apache-2.0"
