@@ -77,6 +77,7 @@ jobs:
           PKG="build/deb/docker-credential-ghcr_${VERSION}_all"
 
           mkdir -p \
+            build/apt \
             "${PKG}/DEBIAN" \
             "${PKG}/usr/bin"
 
