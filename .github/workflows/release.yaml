@@ -128,7 +128,7 @@ jobs:
 
           apt-ftparchive \
             release \
-            dists/stable \
+            build/pages/apt/dists/stable \
             > build/pages/apt/dists/stable/Release
 
       - uses: actions/upload-artifact@v7
