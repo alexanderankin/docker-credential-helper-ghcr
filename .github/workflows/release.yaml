@@ -70,7 +70,7 @@ jobs:
           path: 'build/dist'
       - name: Build Debian package
         env:
-          VERSION: ${{ steps.version.outputs.version }}
+          VERSION: ${{ needs.version.outputs.version }}
         run: |
           set -euxo pipefail
 
@@ -106,7 +106,7 @@ jobs:
           path: 'build/apt'
       - name: Build APT repository
         env:
-          VERSION: ${{ steps.version.outputs.version }}
+          VERSION: ${{ needs.version.outputs.version }}
         run: |
           set -euxo pipefail
 
@@ -173,7 +173,7 @@ jobs:
           git config user.email github-actions@github.com
 
           git add Formula/docker-credential-ghcr.rb
-          git commit -m "release: docker-credential-ghcr ${VERSION} [skip-ci]"
+          git commit -m "release: homebrew formula for docker-credential-ghcr ${VERSION} [skip-ci]"
           git push origin main
 
   deploy-pages:
@@ -213,7 +213,7 @@ jobs:
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ steps.version.outputs.version }}
+          VERSION: ${{ needs.version.outputs.version }}
         run: |
           set -euxo pipefail
 
