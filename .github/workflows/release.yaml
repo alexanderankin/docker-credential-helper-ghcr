@@ -1,0 +1,225 @@
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Version
+        id: version
+        run: |
+          set -euxo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+
+  build:
+    needs:
+      - version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: build
+        run: |
+          set -euxo pipefail
+
+          mkdir -p build/dist
+
+          sed \
+            -e "s/^VERSION = \"__version__\"/VERSION = \"${VERSION}\"/" \
+            docker-credential-ghcr.py \
+            > build/dist/docker-credential-ghcr.py
+          chmod 0755 build/dist/docker-credential-ghcr.py
+          build/dist/docker-credential-ghcr.py --version
+      - name: upload
+        uses: actions/upload-artifact@v7
+        with:
+          name: 'build-dist'
+          path: 'build/dist'
+  apt:
+    needs:
+      - version
+      - build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install build dependencies
+        run: |
+          set -euxo pipefail
+          sudo DEBIAN_FRONTEND=noninteractive apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y apt-utils
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: 'build-dist'
+          path: 'build/dist'
+      - name: Build Debian package
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euxo pipefail
+
+          PKG="build/deb/docker-credential-ghcr_${VERSION}_all"
+
+          mkdir -p \
+            "${PKG}/DEBIAN" \
+            "${PKG}/usr/bin"
+
+          sed \
+            -e "s/__version__/${VERSION}/g" \
+            packaging/debian/control \
+            > "${PKG}/DEBIAN/control"
+
+          install \
+            -m 0755 \
+            build/dist/docker-credential-ghcr.py \
+            "${PKG}/usr/bin/docker-credential-ghcr"
+
+          ln -s \
+            docker-credential-ghcr \
+            "${PKG}/usr/bin/docker-credential-helper-ghcr"
+
+          dpkg-deb \
+            --root-owner-group \
+            --build \
+            "${PKG}" \
+            "build/apt/docker-credential-ghcr_${VERSION}_all.deb"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: 'build-apt'
+          path: 'build/apt'
+      - name: Build APT repository
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euxo pipefail
+
+          mkdir -p \
+            build/pages/apt/pool/main/d/docker-credential-ghcr \
+            build/pages/apt/dists/stable/main/binary-all
+
+          cp \
+            "build/apt/docker-credential-ghcr_${VERSION}_all.deb" \
+            build/pages/apt/pool/main/d/docker-credential-ghcr/
+
+          apt-ftparchive \
+            packages \
+            built/apt/pool/main \
+            > build/pages/apt/dists/stable/main/binary-all/Packages
+
+          gzip -9 -k build/pages/apt/dists/stable/main/binary-all/Packages
+
+          apt-ftparchive \
+            release \
+            dists/stable \
+            > build/pages/apt/dists/stable/Release
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: 'build-pages-apt'
+          path: 'build/pages/apt'
+  homebrew:
+    needs:
+      - version
+      - build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: 'build-dist'
+          path: 'build/dist'
+      - name: Generate Homebrew formula
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euxo pipefail
+
+          SHA256="$(
+            sha256sum build/dist/docker-credential-ghcr.py |
+            cut -d' ' -f1
+          )"
+
+          sed -E \
+            -e 's/^\s+version "[^"]+"$/  version "'"${VERSION}"'"/' \
+            -e 's/^\s+sha256 "[^"]+"$/  sha256 "'"${SHA256}"'"/' \
+            -i Formula/docker-credential-ghcr.rb
+
+          git fetch origin main
+          git checkout main
+
+          mkdir -p Formula
+          cp /tmp/docker-credential-ghcr.rb Formula/docker-credential-ghcr.rb
+
+          if git diff --quiet; then
+            exit 0
+          fi
+
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+
+          git add Formula/docker-credential-ghcr.rb
+          git commit -m "release: docker-credential-ghcr ${VERSION} [skip-ci]"
+          git push origin main
+
+  deploy-pages:
+    needs:
+      - apt
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: 'build-pages-apt'
+          path: 'build/pages/apt'
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: 'build/pages'
+      - uses: actions/deploy-pages@v4
+  github:
+    needs:
+      - build
+      - apt
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: 'build-apt'
+          path: 'build/apt'
+      - uses: actions/download-artifact@v8
+        with:
+          name: 'build-dist'
+          path: 'build/dist'
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euxo pipefail
+
+          gh release create \
+            "v${VERSION}" \
+            build/apt/* \
+            build/dist/* \
+            --title "v${VERSION}" \
+            --generate-notes

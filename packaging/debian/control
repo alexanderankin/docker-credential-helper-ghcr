@@ -1,0 +1,10 @@
+Package: docker-credential-ghcr
+Version: __version__
+Section: utils
+Priority: optional
+Architecture: all
+Depends: python3, gh
+Maintainer: Maintainer <maintainer@example.com>
+Description: Docker credential helper for GitHub Container Registry
+ Uses the GitHub CLI authentication context to provide credentials
+ for ghcr.io to Docker and other Docker-compatible container tools.
