@@ -192,7 +192,7 @@ jobs:
       - uses: actions/upload-pages-artifact@v4
         with:
           path: 'build/pages'
-      - uses: actions/deploy-pages@v4
+      - uses: actions/deploy-pages@v5
   github:
     needs:
       - build
@@ -202,6 +202,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
         with:
           name: 'build-apt'
